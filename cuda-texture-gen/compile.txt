@@ -1,0 +1,1 @@
+﻿nvcc -lm -lpng -o gpu main.cu

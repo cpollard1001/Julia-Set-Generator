@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="bower_components/threejs/build/three.js"></script>
+    <script src="bower_components/threejs/examples/js/controls/OrbitControls.js"></script>
+    <script src="bower_components/threejs/examples/js/libs/stats.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="main.css">
+  </head>
+  <body>
+  <script id="vertexShader" type="x-shader/x-vertex">
+      uniform float xCenter;
+      uniform float yCenter;
+      uniform float zoom;
+      uniform float dispExp;
+      uniform float dispAdd;
+      uniform float dispMult;
+      uniform float compR;
+      uniform float compI;
+
+      varying vec2 vUv;
+      varying float distance;
+
+      void main()	{
+        vUv = uv;
+
+        float pointR = (vUv.x - .5) / zoom + xCenter;
+        float pointI = (vUv.y - .5) / zoom + yCenter;
+
+        float mag = 0.0;
+        float dzR = 1.0;
+        float dzI = 0.0;
+        for(int count = 0; count < 200; count++){
+          if(mag < 1e5){
+            float tmpdzR = 2.0 * (dzR * pointR - dzI * pointI);
+            dzI = 2.0 * (dzR*pointI + dzI*pointR);
+            dzR = tmpdzR;
+
+            float tmpPointR = pointR*pointR - pointI*pointI + compR;
+            pointI = 2.0 * pointR *pointI + compI;
+            pointR = tmpPointR;
+
+            mag = sqrt(pointR*pointR + pointI*pointI);
+          }
+        }
+        distance = log(mag) / sqrt(dzR*dzR+dzI*dzI) * mag;
+
+        vec3 newPos = position;
+        float displacement = (pow(distance,dispExp) + dispAdd)*dispMult;
+        newPos.z = displacement;
+        if(newPos.z > .06){newPos.z=.06;}
+
+        vec4 mvPosition = modelViewMatrix * vec4( newPos, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
+
+      }
+
+      </script>
+
+      <script id="fragmentShader" type="x-shader/x-fragment">
+
+      uniform float colorAdd;
+      uniform float colorMult;
+
+      varying float distance;
+
+      void main()	{
+        float intensity = (log(distance) + colorAdd) * colorMult;
+
+        float r = 0.0;
+        float g = intensity * 2.0 - 1.0;
+        float b = intensity * 2.0;
+
+        gl_FragColor=vec4(vec3(r,g,b),1.0);
+      }
+
+      </script>
+
+    <div id="container"></div>
+    <script src="main.js"></script>
+  </body>
+</html>
